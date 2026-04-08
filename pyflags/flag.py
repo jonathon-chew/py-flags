@@ -1,20 +1,20 @@
 class flag:
-    def __init__(self, argument: str, canonical: str, value: str | int | bool, type: str | int | bool):
-        self.argument = argument
-        self.canonical = canonical
+    def __init__(self, name: str, canonical_name: str, value: str | int | bool, type: str | int | bool):
+        self.name = name
+        self.canonical_name = canonical_name
         self.value = value
         self.type = type
 
-class argument:
+class Flags:
     def __init__(self):
         self.helpers = {}
         self.flag_values = {} # str, flag
         self.required_flags = []
 
-    def __helper_string__(self, helper, default):
-        return f"Usage: {helper}\nType: string\nDefault Value is set as: {default}"
+    def _helper_string(self, helper, default, type):
+        return f"Usage: {helper}\nType: {type}\nDefault Value is set as: {default}"
     
-    def __convert__(self, value: int | bool, target_type: type) -> int | bool | str:
+    def _convert(self, value: int | bool, target_type: type) -> int | bool | str:
         if target_type is int:
             try:
                 return int(value)
@@ -32,31 +32,31 @@ class argument:
         if target_type is str:
             return value
     
-    def add(self, arguments: list[str], helper: str, type: type, default: str="", required: bool=False):
-        canonical_name = arguments[0]
+    def add(self, names: list[str], helper: str, type: type, default: str="", required: bool=False):
+        canonical_name = names[0]
         shared_flag = flag(
-            argument=canonical_name,
-            canonical=canonical_name,
+            name=canonical_name,
+            canonical_name=canonical_name,
             value=default,
             type=type
         )
 
-        for eachArg in arguments:
+        for eachArg in names:
             self.flag_values[eachArg] = shared_flag
-            self.helpers[eachArg] = self.__helper_string__(helper, default)
+            self.helpers[eachArg] = self._helper_string(helper, default, type)
         
         if required:
             self.required_flags.append(canonical_name)
         pass
 
-    def add_string(self, arguments:list[str], helper: str, default: str="", required: bool=False):
-        return self.add(arguments=arguments, helper=helper, type=str, default=default, required=required)
+    def add_string(self, names:list[str], helper: str, default: str="", required: bool=False):
+        return self.add(names=names, helper=helper, type=str, default=default, required=required)
     
-    def add_int(self, arguments:list[str], helper: str, default: int=0, required: bool=False):
-       return self.add(arguments=arguments, helper=helper, type=int, default=default, required=required)
+    def add_int(self, names:list[str], helper: str, default: int=0, required: bool=False):
+       return self.add(names=names, helper=helper, type=int, default=default, required=required)
 
-    def add_bool(self, arguments:list[str], helper: str, default: bool=False, required: bool=False):
-       return self.add(arguments=arguments, helper=helper, type=bool, default=default, required=required)
+    def add_bool(self, names:list[str], helper: str, default: bool=False, required: bool=False):
+       return self.add(names=names, helper=helper, type=bool, default=default, required=required)
 
     def check_flag(self, argument) -> bool:
         for arg in self.flag_values.keys():
@@ -72,7 +72,7 @@ class argument:
             # If this is a known flag switch to it
             if arg in self.flag_values:
                 current_flag = self.flag_values[arg]
-                current_key = current_flag.canonical
+                current_key = current_flag.canonical_name
                 # If it's boolean deal with it now and turn it to True
                 if self.flag_values[current_key].type == bool:
                     # Get the flag
@@ -92,7 +92,7 @@ class argument:
 
                     # Set the value
                     if current_flag.type != str:
-                        current_flag.value = self.__convert__(arg, current_flag.type)
+                        current_flag.value = self._convert(arg, current_flag.type)
                     else:
                         current_flag.value = arg
                     # Reset the value
@@ -111,7 +111,7 @@ class argument:
     def get_value(self, key) -> str | int | bool:
         return self.flag_values[key].value
 
-    def helper(self):
+    def help_text(self):
         print("USAGE:")
         for key, value in self.helpers.items():
             print(f"{key=}, {value=}")

@@ -23,10 +23,10 @@
 
 ## How To Run
 
-You can experiment with the library directly from a Python session or from your own script by importing:
+You can experiment with the library from a Python session or your own script by importing:
 
 ```python
-from pyflags.flag import argument
+from pyflags.flag import Flags
 ```
 
 ## Examples
@@ -34,21 +34,21 @@ from pyflags.flag import argument
 ### Define Some Flags
 
 ```python
-from pyflags.flag import argument
+from pyflags.flag import Flags
 
-args = argument()
-args.add(arguments=["-p", "--project"], helper="Project name", type=str, default="demo")
-args.add(arguments=["-n", "--number"], helper="Build number", type=int, default=1)
-args.add(arguments=["--verbose"], helper="Enable verbose logging", type=bool, default=False)
+flags = Flags()
+flags.add(names=["-p", "--project"], helper="Project name", type=str, default="demo")
+flags.add(names=["-n", "--number"], helper="Build number", type=int, default=1)
+flags.add(names=["--verbose"], helper="Enable verbose logging", type=bool, default=False)
 ```
 
 ### Real Script Example
 
 ```python
 import sys
-from pyflags.flag import argument
+from pyflags.flag import Flags
 
-flags = argument()
+flags = Flags()
 flags.add(["--project", "-p"], "Project name", str, required=True)
 flags.add(["--verbose"], "Enable verbose logging", bool, default=False)
 
@@ -79,9 +79,9 @@ Creating project: my-app
 
 ```python
 import sys
-from pyflags.flag import argument
+from pyflags.flag import Flags
 
-flags = argument()
+flags = Flags()
 flags.add(["--project", "-p"], "Project name", str, required=True)
 
 flags.parse(sys.argv[1:])
@@ -101,6 +101,7 @@ python3 app.py -p my-app
 This project uses Python's built-in `unittest` module. The tests currently cover:
 - flag creation for string, integer, and boolean values
 - helper text and flag lookup behavior
+- generic `add(...)` behavior and shared alias objects
 - successful parsing for string, integer, and boolean flags
 - failure cases such as unknown flags and missing required arguments
 
@@ -124,4 +125,4 @@ This project helped me get more comfortable with:
 - improve exception types and error messages
 - handle more edge cases around invalid input
 - support positional arguments and repeated flags
-- refine the public API to make usage more intuitive
+- continue polishing naming and API ergonomics
