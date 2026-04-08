@@ -12,62 +12,10 @@ class argument:
         self.required_flags = []
 
     def __helper_string__(self, helper, default):
-        return f"Useage: {helper}\nType: string\nDefault Value is set as: {default}"
-
-    def add_string(self, arguments:list[str], helper: str, default: str="", required: bool=False):
-        # print(f"Adding: {arguments=}, {helper=}, {default=}")
-        canonical_name=arguments[0]
-        shared_flag = flag(
-            argument=canonical_name, 
-            canonical=canonical_name, 
-            value=default, 
-            type=str
-        )
-        for eachArg in arguments:
-            self.flag_values[eachArg] = shared_flag
-            self.helpers[eachArg] = self.__helper_string__(helper, default)
-        if required:
-            self.required_flags.append(canonical_name)
+        return f"Usage: {helper}\nType: string\nDefault Value is set as: {default}"
     
-    def add_int(self, arguments:list[str], helper: str, default: int=0, required: bool=False):
-        # print(f"Adding: {arguments=}, {helper=}, {default=}")
-        canonical_name = arguments[0]
-        shared_flag = flag(
-            argument=canonical_name, 
-            canonical=canonical_name, 
-            value=default, 
-            type=int
-        )
-        for eachArg in arguments:
-            self.flag_values[eachArg] = shared_flag
-            self.helpers[eachArg] = self.__helper_string__(helper, default)
-        if required:
-            self.required_flags.append(canonical_name)
-
-    def add_bool(self, arguments:list[str], helper: str, default: bool=False, required: bool=False):
-        # print(f"Adding: {arguments=}, {helper=}, {default=}")
-        canonical_name = arguments[0]
-        shared_flag = flag(
-            argument=canonical_name, 
-            canonical=canonical_name, 
-            value=default, 
-            type=bool
-        )
-        for eachArg in arguments:
-            self.flag_values[eachArg] = shared_flag
-            self.helpers[eachArg] = self.__helper_string__(helper, default)
-        if required:
-            self.required_flags.append(canonical_name)
-
-    def check_flag(self, argument) -> bool:
-        for arg in self.flag_values.keys():
-            if arg == argument:
-                return True
-        else:
-            return False
-
     def __convert__(self, value: int | bool, target_type: type) -> int | bool | str:
-        if target_type is target_type is int:
+        if target_type is int:
             try:
                 return int(value)
             except ValueError:
@@ -83,6 +31,39 @@ class argument:
 
         if target_type is str:
             return value
+    
+    def add(self, arguments: list[str], helper: str, type: type, default: str="", required: bool=False):
+        canonical_name = arguments[0]
+        shared_flag = flag(
+            argument=canonical_name,
+            canonical=canonical_name,
+            value=default,
+            type=type
+        )
+
+        for eachArg in arguments:
+            self.flag_values[eachArg] = shared_flag
+            self.helpers[eachArg] = self.__helper_string__(helper, default)
+        
+        if required:
+            self.required_flags.append(canonical_name)
+        pass
+
+    def add_string(self, arguments:list[str], helper: str, default: str="", required: bool=False):
+        return self.add(arguments=arguments, helper=helper, type=str, default=default, required=required)
+    
+    def add_int(self, arguments:list[str], helper: str, default: int=0, required: bool=False):
+       return self.add(arguments=arguments, helper=helper, type=int, default=default, required=required)
+
+    def add_bool(self, arguments:list[str], helper: str, default: bool=False, required: bool=False):
+       return self.add(arguments=arguments, helper=helper, type=bool, default=default, required=required)
+
+    def check_flag(self, argument) -> bool:
+        for arg in self.flag_values.keys():
+            if arg == argument:
+                return True
+        else:
+            return False
 
     def parse(self, parse_arguments: list[str]):
         current_key = ""
@@ -120,7 +101,7 @@ class argument:
 
                     current_key = ""
                 else:
-                    raise NameError("There is no flag for: ", arg)
+                    raise ValueError("There is no flag for: ", arg)
         if len(self.required_flags):
             raise ValueError("Argument missing: ", ', '.join(self.required_flags))
     
@@ -131,6 +112,6 @@ class argument:
         return self.flag_values[key].value
 
     def helper(self):
-        print("USEAGE:")
+        print("USAGE:")
         for key, value in self.helpers.items():
             print(f"{key=}, {value=}")

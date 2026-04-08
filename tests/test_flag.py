@@ -5,6 +5,35 @@ class TestArgument(unittest.TestCase):
     def setUp(self):
         self.args = argument()
 
+    def test_add_creates_string_flag(self):
+        self.args.add(
+            arguments=["-p"],
+            helper="Project name",
+            type=str,
+            default="pyflag",
+        )
+
+        flags = self.args.get_flags()
+
+        self.assertIn("-p", flags)
+        self.assertEqual(flags["-p"].value, "pyflag")
+        self.assertIs(flags["-p"].type, str)
+
+    def test_add_aliases_share_the_same_flag_object(self):
+        self.args.add(
+            arguments=["--project", "-p"],
+            helper="Project name",
+            type=str,
+            default="demo",
+            required=True,
+        )
+
+        flags = self.args.get_flags()
+
+        self.assertIs(flags["--project"], flags["-p"])
+        self.assertEqual(flags["-p"].canonical, "--project")
+        self.assertIn("--project", self.args.required_flags)
+
     def test_add_string_creates_string_flag(self):
         self.args.add_string(
             arguments=["-p"],
@@ -115,7 +144,7 @@ class TestParse(unittest.TestCase):
     def test_parse_missing_flag_value(self):
         args = argument()
 
-        with self.assertRaises(NameError):
+        with self.assertRaises(ValueError):
             args.parse(["--number", "1"])
 
     def test_parse_missing_required_value(self):

@@ -37,59 +37,42 @@ from pyflags.flag import argument
 from pyflags.flag import argument
 
 args = argument()
-args.add_string(arguments=["-p", "--project"], helper="Project name", default="demo")
-args.add_int(arguments=["-n", "--number"], helper="Build number", default=1)
-args.add_bool(arguments=["--verbose"], helper="Enable verbose logging", default=False)
+args.add(arguments=["-p", "--project"], helper="Project name", type=str, default="demo")
+args.add(arguments=["-n", "--number"], helper="Build number", type=int, default=1)
+args.add(arguments=["--verbose"], helper="Enable verbose logging", type=bool, default=False)
 ```
 
-In the current design, aliases such as `-p` and `--project` point to the same underlying flag object, so either name updates the same stored value.
-
-### Parse CLI Input
+### Real Script Example
 
 ```python
 import sys
 from pyflags.flag import argument
 
-args = argument()
-args.add_string(arguments=["-p", "--project"], helper="Project name", default="", required=True)
-args.add_int(arguments=["--number"], helper="Build number", default=0)
-args.add_bool(arguments=["--verbose"], helper="Enable verbose logging", default=False)
+flags = argument()
+flags.add(["--project", "-p"], "Project name", str, required=True)
+flags.add(["--verbose"], "Enable verbose logging", bool, default=False)
 
-args.parse(sys.argv[1:])
+flags.parse(sys.argv[1:])
 
-print(args.get_value("--project"))
-print(args.get_value("--number"))   # 3
-print(args.get_value("--verbose"))  # True
+project_name = flags.get_value("--project")
+
+if flags.get_value("--verbose"):
+    print(f"[verbose] Starting project setup for {project_name}")
+
+print(f"Creating project: {project_name}")
 ```
 
 Example command:
 
 ```bash
-python3 app.py --project my-app --number 3 --verbose
+python3 app.py --project my-app --verbose
 ```
 
-### Check Whether A Flag Exists
+Example output:
 
-```python
-from pyflags.flag import argument
-
-args = argument()
-args.add_string(arguments=["-p", "--project"], helper="Project name", default="")
-
-print(args.check_flag("-p"))         # True
-print(args.check_flag("--project"))  # True
-print(args.check_flag("--missing"))  # False
-```
-
-### Get A Parsed Value
-
-```python
-from pyflags.flag import argument
-
-args = argument()
-args.add_string(arguments=["--project"], helper="Project name", default="demo")
-
-print(args.get_value("--project"))   # demo
+```text
+[verbose] Starting project setup for my-app
+Creating project: my-app
 ```
 
 ### Alias Example
@@ -98,51 +81,19 @@ print(args.get_value("--project"))   # demo
 import sys
 from pyflags.flag import argument
 
-args = argument()
-args.add_string(arguments=["--project", "-p"], helper="Project name", default="", required=True)
+flags = argument()
+flags.add(["--project", "-p"], "Project name", str, required=True)
 
-args.parse(sys.argv[1:])
+flags.parse(sys.argv[1:])
 
-print(args.get_value("--project"))
-print(args.get_value("-p"))
+print(flags.get_value("--project"))  # my-app
+print(flags.get_value("-p"))         # my-app
 ```
 
 Example command:
 
 ```bash
 python3 app.py -p my-app
-```
-
-Both lookups return the same value because the aliases share one logical flag.
-
-### Show Help Text
-
-```python
-from pyflags.flag import argument
-
-args = argument()
-args.add_string(arguments=["-p"], helper="Project name", default="demo")
-args.add_bool(arguments=["--verbose"], helper="Enable verbose logging", default=False)
-
-args.helper()
-```
-
-### Required Flag Example
-
-```python
-import sys
-from pyflags.flag import argument
-
-args = argument()
-args.add_string(arguments=["-p", "--project"], helper="Project name", default="", required=True)
-
-args.parse(sys.argv[1:])
-```
-
-Example command:
-
-```bash
-python3 app.py --project my-app
 ```
 
 ## Testing
