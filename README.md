@@ -6,6 +6,7 @@
 ## What This Project Demonstrates
 - Python classes and object-oriented design
 - storing CLI flag definitions and metadata
+- modelling aliases as one logical flag with multiple names
 - parsing command-line style input into typed values
 - handling defaults, required flags, and unknown flags
 - writing unit tests for both success and failure cases
@@ -13,9 +14,11 @@
 ## Current Features
 - define string, integer, and boolean flags
 - support short and long flag names
+- allow aliases to share the same underlying flag value
 - store helper text, types, and default values
 - parse input into string, integer, and boolean values
 - check whether a flag exists
+- get parsed values directly with `get_value()`
 - raise errors for unknown flags and missing required flags
 
 ## How To Run
@@ -38,6 +41,8 @@ args.add_string(arguments=["-p", "--project"], helper="Project name", default="d
 args.add_int(arguments=["-n", "--number"], helper="Build number", default=1)
 args.add_bool(arguments=["--verbose"], helper="Enable verbose logging", default=False)
 ```
+
+In the current design, aliases such as `-p` and `--project` point to the same underlying flag object, so either name updates the same stored value.
 
 ### Parse CLI Input
 
@@ -86,6 +91,29 @@ args.add_string(arguments=["--project"], helper="Project name", default="demo")
 
 print(args.get_value("--project"))   # demo
 ```
+
+### Alias Example
+
+```python
+import sys
+from pyflags.flag import argument
+
+args = argument()
+args.add_string(arguments=["--project", "-p"], helper="Project name", default="", required=True)
+
+args.parse(sys.argv[1:])
+
+print(args.get_value("--project"))
+print(args.get_value("-p"))
+```
+
+Example command:
+
+```bash
+python3 app.py -p my-app
+```
+
+Both lookups return the same value because the aliases share one logical flag.
 
 ### Show Help Text
 
@@ -136,6 +164,7 @@ python3 -m unittest discover -s tests
 This project helped me get more comfortable with:
 - designing a small but reusable class-based API
 - separating flag registration from parsing logic
+- handling aliases through a canonical flag model
 - converting string input into typed values safely
 - using tests to catch parsing bugs and tighten up the design
 

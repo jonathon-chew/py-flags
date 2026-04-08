@@ -1,6 +1,7 @@
 class flag:
-    def __init__(self, argument, value: str | int | bool, type: str | int | bool):
+    def __init__(self, argument: str, canonical: str, value: str | int | bool, type: str | int | bool):
         self.argument = argument
+        self.canonical = canonical
         self.value = value
         self.type = type
 
@@ -10,29 +11,53 @@ class argument:
         self.flag_values = {} # str, flag
         self.required_flags = []
 
+    def __helper_string__(self, helper, default):
+        return f"Useage: {helper}\nType: string\nDefault Value is set as: {default}"
+
     def add_string(self, arguments:list[str], helper: str, default: str="", required: bool=False):
         # print(f"Adding: {arguments=}, {helper=}, {default=}")
+        canonical_name=arguments[0]
+        shared_flag = flag(
+            argument=canonical_name, 
+            canonical=canonical_name, 
+            value=default, 
+            type=str
+        )
         for eachArg in arguments:
-            self.flag_values[eachArg] = flag(argument=eachArg, value=default, type=str)
-            self.helpers[eachArg] = f"Useage: {helper}\nType: string\nDefault Value is set as: {default}"
-            if required:
-                self.required_flags.append(eachArg)
+            self.flag_values[eachArg] = shared_flag
+            self.helpers[eachArg] = self.__helper_string__(helper, default)
+        if required:
+            self.required_flags.append(canonical_name)
     
     def add_int(self, arguments:list[str], helper: str, default: int=0, required: bool=False):
         # print(f"Adding: {arguments=}, {helper=}, {default=}")
+        canonical_name = arguments[0]
+        shared_flag = flag(
+            argument=canonical_name, 
+            canonical=canonical_name, 
+            value=default, 
+            type=int
+        )
         for eachArg in arguments:
-            self.flag_values[eachArg] = flag(argument=eachArg, value=default, type=int)
-            self.helpers[eachArg] = f"Useage: {helper}\nType: int\nDefault Value is set as: {default}"
-            if required:
-                self.required_flags.append(eachArg)
+            self.flag_values[eachArg] = shared_flag
+            self.helpers[eachArg] = self.__helper_string__(helper, default)
+        if required:
+            self.required_flags.append(canonical_name)
 
     def add_bool(self, arguments:list[str], helper: str, default: bool=False, required: bool=False):
         # print(f"Adding: {arguments=}, {helper=}, {default=}")
+        canonical_name = arguments[0]
+        shared_flag = flag(
+            argument=canonical_name, 
+            canonical=canonical_name, 
+            value=default, 
+            type=bool
+        )
         for eachArg in arguments:
-            self.flag_values[eachArg] = flag(argument=eachArg, value=default, type=bool)
-            self.helpers[eachArg] = f"Useage: {helper}\nType: bool\nDefault Value is set as: {default}"
-            if required:
-                self.required_flags.append(eachArg)
+            self.flag_values[eachArg] = shared_flag
+            self.helpers[eachArg] = self.__helper_string__(helper, default)
+        if required:
+            self.required_flags.append(canonical_name)
 
     def check_flag(self, argument) -> bool:
         for arg in self.flag_values.keys():
@@ -64,8 +89,9 @@ class argument:
         # Check all arguments
         for arg in parse_arguments:
             # If this is a known flag switch to it
-            if arg in self.flag_values.keys():
-                current_key = arg
+            if arg in self.flag_values:
+                current_flag = self.flag_values[arg]
+                current_key = current_flag.canonical
                 # If it's boolean deal with it now and turn it to True
                 if self.flag_values[current_key].type == bool:
                     # Get the flag
@@ -89,8 +115,10 @@ class argument:
                     else:
                         current_flag.value = arg
                     # Reset the value
-                    self.flag_values[current_key] = current_flag
-                    current_flag, current_key = "", ""
+                    if current_key in self.required_flags:
+                        self.required_flags.remove(current_key)
+
+                    current_key = ""
                 else:
                     raise NameError("There is no flag for: ", arg)
         if len(self.required_flags):
