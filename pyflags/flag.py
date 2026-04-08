@@ -98,6 +98,9 @@ class argument:
     
     def get_flags(self) -> dict[str, flag]:
         return self.flag_values
+    
+    def get_value(self, key) -> str | int | bool:
+        return self.flag_values[key].value
 
     def helper(self):
         print("USEAGE:")

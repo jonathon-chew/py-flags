@@ -72,6 +72,15 @@ class TestArgument(unittest.TestCase):
         self.assertIn("Project name", self.args.helpers["-p"])
         self.assertIn("Type: string", self.args.helpers["-p"])
 
+    def test_get_value_returns_flag_value(self):
+        self.args.add_string(
+            arguments=["--project"],
+            helper="Project name",
+            default="demo-app",
+        )
+
+        self.assertEqual(self.args.get_value("--project"), "demo-app")
+
 
 
 class TestParse(unittest.TestCase):

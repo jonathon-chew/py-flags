@@ -17,17 +17,10 @@
 - parse input into string, integer, and boolean values
 - check whether a flag exists
 - raise errors for unknown flags and missing required flags
-- run unit tests with Python's built-in `unittest`
 
 ## How To Run
 
-From the project root:
-
-```bash
-python3 -m unittest discover -s tests
-```
-
-You can also experiment with the library directly from a Python session or from your own script by importing:
+You can experiment with the library directly from a Python session or from your own script by importing:
 
 ```python
 from pyflags.flag import argument
@@ -49,20 +42,25 @@ args.add_bool(arguments=["--verbose"], helper="Enable verbose logging", default=
 ### Parse CLI Input
 
 ```python
+import sys
 from pyflags.flag import argument
 
 args = argument()
-args.add_string(arguments=["-p"], helper="Project name", default="")
+args.add_string(arguments=["-p", "--project"], helper="Project name", default="", required=True)
 args.add_int(arguments=["--number"], helper="Build number", default=0)
 args.add_bool(arguments=["--verbose"], helper="Enable verbose logging", default=False)
 
-args.parse(["-p", "my-app", "--number", "3", "--verbose"])
+args.parse(sys.argv[1:])
 
-flags = args.get_flags()
+print(args.get_value("--project"))
+print(args.get_value("--number"))   # 3
+print(args.get_value("--verbose"))  # True
+```
 
-print(flags["-p"].value)         # my-app
-print(flags["--number"].value)   # 3
-print(flags["--verbose"].value)  # True
+Example command:
+
+```bash
+python3 app.py --project my-app --number 3 --verbose
 ```
 
 ### Check Whether A Flag Exists
@@ -76,6 +74,17 @@ args.add_string(arguments=["-p", "--project"], helper="Project name", default=""
 print(args.check_flag("-p"))         # True
 print(args.check_flag("--project"))  # True
 print(args.check_flag("--missing"))  # False
+```
+
+### Get A Parsed Value
+
+```python
+from pyflags.flag import argument
+
+args = argument()
+args.add_string(arguments=["--project"], helper="Project name", default="demo")
+
+print(args.get_value("--project"))   # demo
 ```
 
 ### Show Help Text
@@ -93,12 +102,19 @@ args.helper()
 ### Required Flag Example
 
 ```python
+import sys
 from pyflags.flag import argument
 
 args = argument()
-args.add_string(arguments=["-p"], helper="Project name", default="", required=True)
+args.add_string(arguments=["-p", "--project"], helper="Project name", default="", required=True)
 
-args.parse(["-p", "my-app"])
+args.parse(sys.argv[1:])
+```
+
+Example command:
+
+```bash
+python3 app.py --project my-app
 ```
 
 ## Testing
