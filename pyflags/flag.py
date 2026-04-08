@@ -11,7 +11,7 @@ class argument:
         self.required_flags = []
 
     def add_string(self, arguments:list[str], helper: str, default: str="", required: bool=False):
-        print(f"Adding: {arguments=}, {helper=}, {default=}")
+        # print(f"Adding: {arguments=}, {helper=}, {default=}")
         for eachArg in arguments:
             self.flag_values[eachArg] = flag(argument=eachArg, value=default, type=str)
             self.helpers[eachArg] = f"Useage: {helper}\nType: string\nDefault Value is set as: {default}"
@@ -19,7 +19,7 @@ class argument:
                 self.required_flags.append(eachArg)
     
     def add_int(self, arguments:list[str], helper: str, default: int=0, required: bool=False):
-        print(f"Adding: {arguments=}, {helper=}, {default=}")
+        # print(f"Adding: {arguments=}, {helper=}, {default=}")
         for eachArg in arguments:
             self.flag_values[eachArg] = flag(argument=eachArg, value=default, type=int)
             self.helpers[eachArg] = f"Useage: {helper}\nType: int\nDefault Value is set as: {default}"
@@ -27,7 +27,7 @@ class argument:
                 self.required_flags.append(eachArg)
 
     def add_bool(self, arguments:list[str], helper: str, default: bool=False, required: bool=False):
-        print(f"Adding: {arguments=}, {helper=}, {default=}")
+        # print(f"Adding: {arguments=}, {helper=}, {default=}")
         for eachArg in arguments:
             self.flag_values[eachArg] = flag(argument=eachArg, value=default, type=bool)
             self.helpers[eachArg] = f"Useage: {helper}\nType: bool\nDefault Value is set as: {default}"
@@ -91,9 +91,6 @@ class argument:
                     # Reset the value
                     self.flag_values[current_key] = current_flag
                     current_flag, current_key = "", ""
-
-                    if arg in self.required_flags:
-                        self.required_flags.remove(arg)
                 else:
                     raise NameError("There is no flag for: ", arg)
         if len(self.required_flags):
