@@ -1,25 +1,37 @@
 # Py Flags
 
 ## Summary
-Implement a simple command-line flag helper for defining and working with CLI arguments.
+`py-flags` is a small Python project for defining and parsing command-line flags. I built it as a personal learning project to better understand class design, basic parsing logic, type conversion, validation, and unit testing.
 
-## What You'll Learn
-- Python classes and objects
-- methods and instance state
-- dictionaries and lists for storing flag data
-- basic CLI flag design and help output
+## What This Project Demonstrates
+- Python classes and object-oriented design
+- storing CLI flag definitions and metadata
+- parsing command-line style input into typed values
+- handling defaults, required flags, and unknown flags
+- writing unit tests for both success and failure cases
 
-## MVP
-- define string, integer, and boolean CLI flags
-- register flags and helper text
-- print simple usage/help information
-- simple CLI or library demo
+## Current Features
+- define string, integer, and boolean flags
+- support short and long flag names
+- store helper text, types, and default values
+- parse input into string, integer, and boolean values
+- check whether a flag exists
+- raise errors for unknown flags and missing required flags
+- run unit tests with Python's built-in `unittest`
 
-## Stretch Goals
-- parse command-line input
-- validate required arguments
-- support long and short flag names
-- improve error messages and defaults
+## How To Run
+
+From the project root:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+You can also experiment with the library directly from a Python session or from your own script by importing:
+
+```python
+from pyflags.flag import argument
+```
 
 ## Examples
 
@@ -88,3 +100,32 @@ args.add_string(arguments=["-p"], helper="Project name", default="", required=Tr
 
 args.parse(["-p", "my-app"])
 ```
+
+## Testing
+
+This project uses Python's built-in `unittest` module. The tests currently cover:
+- flag creation for string, integer, and boolean values
+- helper text and flag lookup behavior
+- successful parsing for string, integer, and boolean flags
+- failure cases such as unknown flags and missing required arguments
+
+Run the full test suite with:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+## What I Learned
+
+This project helped me get more comfortable with:
+- designing a small but reusable class-based API
+- separating flag registration from parsing logic
+- converting string input into typed values safely
+- using tests to catch parsing bugs and tighten up the design
+
+## Next Improvements
+
+- improve exception types and error messages
+- handle more edge cases around invalid input
+- support positional arguments and repeated flags
+- refine the public API to make usage more intuitive
