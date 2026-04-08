@@ -69,8 +69,9 @@ class TestArgument(unittest.TestCase):
             default="pyflag",
         )
 
-        self.assertEqual(self.args.helpers["-p"], "Project name")
-        self.assertEqual(self.args.helpers["--project"], "Project name")
+        self.assertIn("Project name", self.args.helpers["-p"])
+        self.assertIn("Type: string", self.args.helpers["-p"])
+
 
 
 class TestParse(unittest.TestCase):
@@ -91,6 +92,29 @@ class TestParse(unittest.TestCase):
 
         flags = args.get_flags()
         self.assertEqual(flags["-p"].value, "demo")
+    
+    def test_parse_sets_int_flag_value(self):
+        args = argument()
+        args.add_int(arguments=["--number"], helper="A random number", default="")
+
+        args.parse(["--number", "1"])
+
+        flags = args.get_flags()
+        self.assertIsInstance(flags["--number"].value, int)
+        self.assertEqual(flags["--number"].value, 1)
+    
+    def test_parse_missing_flag_value(self):
+        args = argument()
+
+        with self.assertRaises(NameError):
+            args.parse(["--number", "1"])
+
+    def test_parse_missing_required_value(self):
+        args = argument()
+        args.add_int(arguments=["--number", "-n", "1"], helper="A random number", default="", required=True)
+
+        with self.assertRaises(ValueError):
+            args.parse(["-n", "1"])
 
 if __name__ == "__main__":
     unittest.main()
