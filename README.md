@@ -16,8 +16,11 @@
 - support short and long flag names
 - allow aliases to share the same underlying flag value
 - store helper text, types, and default values
-- parse input into string, integer, and boolean values
+- parse input into string, integer, boolean, and file-path values
+- validate file flags by checking that the provided path exists
+- support custom validation functions for parsed values
 - check whether a flag exists
+- return a clean dictionary of parsed values with `get_flags()`
 - get parsed values directly with `get_value()`
 - raise errors for unknown flags and missing required flags
 
@@ -40,6 +43,15 @@ flags = Flags()
 flags.add(names=["-p", "--project"], helper="Project name", type=str, default="demo")
 flags.add(names=["-n", "--number"], helper="Build number", type=int, default=1)
 flags.add(names=["--verbose"], helper="Enable verbose logging", type=bool, default=False)
+flags.add_file(names=["--config", "-c"], helper="Path to config file")
+
+print(flags.get_flags())
+```
+
+Example output:
+
+```python
+{"-p": "demo", "--project": "demo", "-n": 1, "--number": 1, "--verbose": True, "--config": ""}
 ```
 
 ### Real Script Example
@@ -50,29 +62,33 @@ from pyflags.flag import Flags
 
 flags = Flags()
 flags.add(["--project", "-p"], "Project name", str, required=True)
+flags.add(["--port"], "Server port", int, default=8000, validator=lambda value: 1 <= value <= 65535)
+flags.add_file(["--config", "-c"], "Config file", required=True)
 flags.add(["--verbose"], "Enable verbose logging", bool, default=False)
 
 flags.parse(sys.argv[1:])
 
 project_name = flags.get_value("--project")
+port = flags.get_value("--port")
+config_path = flags.get_value("--config")
 
 if flags.get_value("--verbose"):
-    print(f"[verbose] Starting project setup for {project_name}")
+    print(f"[verbose] Loading config from {config_path}")
 
-print(f"Creating project: {project_name}")
+print(f"Creating project: {project_name} on port {port}")
 ```
 
 Example command:
 
 ```bash
-python3 app.py --project my-app --verbose
+python3 app.py --project my-app --port 8080 --config settings.json --verbose
 ```
 
 Example output:
 
 ```text
-[verbose] Starting project setup for my-app
-Creating project: my-app
+[verbose] Loading config from settings.json
+Creating project: my-app on port 8080
 ```
 
 ### Alias Example
@@ -102,7 +118,10 @@ This project uses Python's built-in `unittest` module. The tests currently cover
 - flag creation for string, integer, and boolean values
 - helper text and flag lookup behavior
 - generic `add(...)` behavior and shared alias objects
-- successful parsing for string, integer, and boolean flags
+- value-facing `get_flags()` and `get_value()` behavior
+- successful parsing for string, integer, boolean, and file flags
+- custom validation for accepted and rejected values
+- file-path validation for existing and missing files
 - failure cases such as unknown flags and missing required arguments
 
 Run the full test suite with:
@@ -117,6 +136,9 @@ This project helped me get more comfortable with:
 - designing a small but reusable class-based API
 - separating flag registration from parsing logic
 - handling aliases through a canonical flag model
+- separating user-facing return values from internal flag objects
+- validating file paths during parsing
+- adding custom validators after type conversion
 - converting string input into typed values safely
 - using tests to catch parsing bugs and tighten up the design
 
@@ -125,4 +147,3 @@ This project helped me get more comfortable with:
 - improve exception types and error messages
 - handle more edge cases around invalid input
 - support positional arguments and repeated flags
-- continue polishing naming and API ergonomics

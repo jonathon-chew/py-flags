@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from pyflags.flag import Flags
 
 class TestArgument(unittest.TestCase):
@@ -15,9 +17,9 @@ class TestArgument(unittest.TestCase):
 
         flags = self.args.get_flags()
 
-        self.assertIn("-p", flags)
-        self.assertEqual(flags["-p"].value, "pyflag")
-        self.assertIs(flags["-p"].type, str)
+        self.assertIn("-p", flags.keys())
+        self.assertEqual(flags["-p"], "pyflag")
+        self.assertIsInstance(flags["-p"], str)
 
     def test_add_aliases_share_the_same_flag_object(self):
         self.args.add(
@@ -28,7 +30,7 @@ class TestArgument(unittest.TestCase):
             required=True,
         )
 
-        flags = self.args.get_flags()
+        flags = self.args._get_flag_objects()
 
         self.assertIs(flags["--project"], flags["-p"])
         self.assertEqual(flags["-p"].canonical_name, "--project")
@@ -44,8 +46,8 @@ class TestArgument(unittest.TestCase):
         flags = self.args.get_flags()
 
         self.assertIn("-p", flags)
-        self.assertEqual(flags["-p"].value, "pyflag")
-        self.assertIs(flags["-p"].type, str)
+        self.assertEqual(flags["-p"], "pyflag")
+        self.assertIsInstance(flags["-p"], str)
 
     def test_add_int_creates_int_flag(self):
         self.args.add_int(
@@ -57,8 +59,8 @@ class TestArgument(unittest.TestCase):
         flags = self.args.get_flags()
 
         self.assertIn("-n", flags)
-        self.assertEqual(flags["-n"].value, 3)
-        self.assertIs(flags["-n"].type, int)
+        self.assertEqual(flags["-n"], 3)
+        self.assertIsInstance(flags["-n"], int)
 
     def test_add_bool_creates_bool_flag(self):
         self.args.add_bool(
@@ -70,8 +72,20 @@ class TestArgument(unittest.TestCase):
         flags = self.args.get_flags()
 
         self.assertIn("--verbose", flags)
-        self.assertEqual(flags["--verbose"].value, True)
-        self.assertIs(flags["--verbose"].type, bool)
+        self.assertEqual(flags["--verbose"], True)
+        self.assertIsInstance(flags["--verbose"], bool)
+
+    def test_add_file_creates_file_flag(self):
+        self.args.add_file(
+            names=["--config"],
+            helper="Config file path",
+            default="",
+        )
+
+        flag_objects = self.args._get_flag_objects()
+
+        self.assertIn("--config", flag_objects)
+        self.assertIs(flag_objects["--config"].type, Path)
 
     def test_check_flag_returns_true_for_existing_flag(self):
         self.args.add_string(
@@ -121,7 +135,7 @@ class TestParse(unittest.TestCase):
         args.parse(["--verbose"])
 
         flags = args.get_flags()
-        self.assertTrue(flags["--verbose"].value)
+        self.assertTrue(flags["--verbose"])
 
     def test_parse_sets_string_flag_value(self):
         args = Flags()
@@ -130,7 +144,7 @@ class TestParse(unittest.TestCase):
         args.parse(["-p", "demo"])
 
         flags = args.get_flags()
-        self.assertEqual(flags["-p"].value, "demo")
+        self.assertEqual(flags["-p"], "demo")
     
     def test_parse_sets_int_flag_value(self):
         args = Flags()
@@ -139,8 +153,60 @@ class TestParse(unittest.TestCase):
         args.parse(["--number", "1"])
 
         flags = args.get_flags()
-        self.assertIsInstance(flags["--number"].value, int)
-        self.assertEqual(flags["--number"].value, 1)
+        self.assertIsInstance(flags["--number"], int)
+        self.assertEqual(flags["--number"], 1)
+
+    def test_parse_sets_file_flag_value_when_file_exists(self):
+        args = Flags()
+        args.add_file(names=["--config"], helper="Config file path", default="")
+
+        with NamedTemporaryFile() as temp_file:
+            args.parse(["--config", temp_file.name])
+
+            flags = args.get_flags()
+            self.assertEqual(flags["--config"], temp_file.name)
+
+    def test_parse_file_flag_raises_when_file_is_missing(self):
+        args = Flags()
+        args.add_file(names=["--config"], helper="Config file path", default="")
+
+        with self.assertRaises(FileNotFoundError):
+            args.parse(["--config", "missing-config-file.txt"])
+
+    def test_parse_runs_validator_for_valid_int_value(self):
+        args = Flags()
+        args.add_int(
+            names=["--port"],
+            helper="Server port",
+            validator=lambda value: 1 <= value <= 65535,
+        )
+
+        args.parse(["--port", "8080"])
+
+        self.assertEqual(args.get_value("--port"), 8080)
+
+    def test_parse_raises_when_validator_rejects_value(self):
+        args = Flags()
+        args.add_int(
+            names=["--port"],
+            helper="Server port",
+            validator=lambda value: 1 <= value <= 65535,
+        )
+
+        with self.assertRaises(ValueError):
+            args.parse(["--port", "70000"])
+
+    def test_parse_runs_validator_for_string_value(self):
+        args = Flags()
+        args.add_string(
+            names=["--env"],
+            helper="Environment name",
+            validator=lambda value: value in ["dev", "test", "prod"],
+        )
+
+        args.parse(["--env", "prod"])
+
+        self.assertEqual(args.get_value("--env"), "prod")
     
     def test_parse_missing_flag_value(self):
         args = Flags()
