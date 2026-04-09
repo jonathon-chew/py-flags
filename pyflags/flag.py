@@ -13,9 +13,9 @@ class Flags:
     def __init__(self):
         self.helpers = {} # str, str
         self.flag_values = {} # str, flag
-        self.required_flags = []
+        self.required_flags = [] # str
 
-    def _helper_string(self, helper, default, type):
+    def _helper_string(self, helper:str, default:type, type:type) -> str:
         return f"{helper}\nType: {type}\nDefault Value is set as: {default}"
     
     def _convert(self, value: type, target_type: type) -> type | None:

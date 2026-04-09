@@ -128,98 +128,91 @@ class TestArgument(unittest.TestCase):
 
 
 class TestParse(unittest.TestCase):
+    def setUp(self):
+        self.args = Flags()
+
     def test_parse_sets_bool_flag_true_when_present(self):
-        args = Flags()
-        args.add_bool(names=["--verbose"], helper="Verbose mode", default=False)
+        self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=False)
 
-        args.parse(["--verbose"])
+        self.args.parse(["--verbose"])
 
-        flags = args.get_flags()
+        flags = self.args.get_flags()
         self.assertTrue(flags["--verbose"])
 
     def test_parse_sets_string_flag_value(self):
-        args = Flags()
-        args.add_string(names=["-p"], helper="Project name", default="")
+        self.args.add_string(names=["-p"], helper="Project name", default="")
 
-        args.parse(["-p", "demo"])
+        self.args.parse(["-p", "demo"])
 
-        flags = args.get_flags()
+        flags = self.args.get_flags()
         self.assertEqual(flags["-p"], "demo")
     
     def test_parse_sets_int_flag_value(self):
-        args = Flags()
-        args.add_int(names=["--number"], helper="A random number", default="")
+        self.args.add_int(names=["--number"], helper="A random number", default="")
 
-        args.parse(["--number", "1"])
+        self.args.parse(["--number", "1"])
 
-        flags = args.get_flags()
+        flags = self.args.get_flags()
         self.assertIsInstance(flags["--number"], int)
         self.assertEqual(flags["--number"], 1)
 
     def test_parse_sets_file_flag_value_when_file_exists(self):
-        args = Flags()
-        args.add_file(names=["--config"], helper="Config file path", default="")
+        self.args.add_file(names=["--config"], helper="Config file path", default="")
 
         with NamedTemporaryFile() as temp_file:
-            args.parse(["--config", temp_file.name])
+            self.args.parse(["--config", temp_file.name])
 
-            flags = args.get_flags()
+            flags = self.args.get_flags()
             self.assertEqual(flags["--config"], temp_file.name)
 
     def test_parse_file_flag_raises_when_file_is_missing(self):
-        args = Flags()
-        args.add_file(names=["--config"], helper="Config file path", default="")
+        self.args.add_file(names=["--config"], helper="Config file path", default="")
 
         with self.assertRaises(FileNotFoundError):
-            args.parse(["--config", "missing-config-file.txt"])
+            self.args.parse(["--config", "missing-config-file.txt"])
 
     def test_parse_runs_validator_for_valid_int_value(self):
-        args = Flags()
-        args.add_int(
+        self.args.add_int(
             names=["--port"],
             helper="Server port",
             validator=lambda value: 1 <= value <= 65535,
         )
 
-        args.parse(["--port", "8080"])
+        self.args.parse(["--port", "8080"])
 
-        self.assertEqual(args.get_value("--port"), 8080)
+        self.assertEqual(self.args.get_value("--port"), 8080)
 
     def test_parse_raises_when_validator_rejects_value(self):
-        args = Flags()
-        args.add_int(
+        self.args.add_int(
             names=["--port"],
             helper="Server port",
             validator=lambda value: 1 <= value <= 65535,
         )
 
         with self.assertRaises(ValueError):
-            args.parse(["--port", "70000"])
+            self.args.parse(["--port", "70000"])
 
     def test_parse_runs_validator_for_string_value(self):
-        args = Flags()
-        args.add_string(
+        self.args.add_string(
             names=["--env"],
             helper="Environment name",
             validator=lambda value: value in ["dev", "test", "prod"],
         )
 
-        args.parse(["--env", "prod"])
+        self.args.parse(["--env", "prod"])
 
-        self.assertEqual(args.get_value("--env"), "prod")
+        self.assertEqual(self.args.get_value("--env"), "prod")
     
     def test_parse_missing_flag_value(self):
-        args = Flags()
 
         with self.assertRaises(ValueError):
-            args.parse(["--number", "1"])
+            self.args.parse(["--number", "1"])
 
     def test_parse_missing_required_value(self):
-        args = Flags()
-        args.add_int(names=["--number", "-n"], helper="A random number", default="", required=True)
+        self.args.add_int(names=["--number", "-n"], helper="A random number", default="", required=True)
 
         with self.assertRaises(ValueError):
-            args.parse(["1"])
+            self.args.parse(["1"])
 
 if __name__ == "__main__":
     unittest.main()
