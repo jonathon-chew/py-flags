@@ -11,7 +11,7 @@ class TestArgument(unittest.TestCase):
         self.args.add(
             names=["-p"],
             helper="Project name",
-            type=str,
+            value_type=str,
             default="pyflag",
         )
 
@@ -25,7 +25,7 @@ class TestArgument(unittest.TestCase):
         self.args.add(
             names=["--project", "-p"],
             helper="Project name",
-            type=str,
+            value_type=str,
             default="demo",
             required=True,
         )
@@ -85,7 +85,7 @@ class TestArgument(unittest.TestCase):
         flag_objects = self.args._get_flag_objects()
 
         self.assertIn("--config", flag_objects)
-        self.assertIs(flag_objects["--config"].type, Path)
+        self.assertIs(flag_objects["--config"].value_type, Path)
 
     def test_check_flag_returns_true_for_existing_flag(self):
         self.args.add_string(
@@ -148,7 +148,7 @@ class TestParse(unittest.TestCase):
         self.assertEqual(flags["-p"], "demo")
     
     def test_parse_sets_int_flag_value(self):
-        self.args.add_int(names=["--number"], helper="A random number", default="")
+        self.args.add_int(names=["--number"], helper="A random number")
 
         self.args.parse(["--number", "1"])
 
@@ -209,7 +209,7 @@ class TestParse(unittest.TestCase):
             self.args.parse(["--number", "1"])
 
     def test_parse_missing_required_value(self):
-        self.args.add_int(names=["--number", "-n"], helper="A random number", default="", required=True)
+        self.args.add_int(names=["--number", "-n"], helper="A random number", required=True)
 
         with self.assertRaises(ValueError):
             self.args.parse(["1"])

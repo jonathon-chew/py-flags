@@ -2,11 +2,17 @@ from pathlib import Path
 from typing import Callable, Any
 
 class flag:
-    def __init__(self, canonical_name: str, value: type, type: type, validator: Callable[[Any], bool] | None = None):
+    def __init__(
+        self, 
+        canonical_name: str, 
+        value: str|int|bool|None = None, 
+        value_type: type=str, 
+        validator: Callable[[Any], bool] | None = None
+    )-> None: 
         self.name = canonical_name
         self.canonical_name = canonical_name
         self.value = value
-        self.type = type
+        self.value_type = value_type
         self.validator = validator
 
 class Flags:
@@ -15,10 +21,15 @@ class Flags:
         self.flag_values = {} # str, flag
         self.required_flags = [] # str
 
-    def _helper_string(self, helper:str, default:type, type:type) -> str:
-        return f"{helper}\nType: {type}\nDefault Value is set as: {default}"
+    def _helper_string(
+        self, 
+        helper:str, 
+        default:str|int|bool|None = None, 
+        value_type:type=str
+    ) -> str:
+        return f"{helper}\nType: {value_type}\nDefault Value is set as: {default}"
     
-    def _convert(self, value: type, target_type: type) -> type | None:
+    def _convert(self, value: str|int|bool = "", target_type: str|int|bool|None = None) -> type | None:
         if target_type is int:
             try:
                 return int(value)
@@ -47,43 +58,47 @@ class Flags:
     def _get_flag_objects(self) -> dict[str, flag]:
         return self.flag_values
     
-    def add(self, names: list[str], helper: str, type: type, default: type=None, required: bool=False, validator: Callable[[Any], bool] | None = None):
+    def add(
+            self, 
+            names: list[str], 
+            helper: str, 
+            value_type: type, 
+            default: str|int|bool|None = None, 
+            required: bool=False, 
+            validator: Callable[[Any], bool] | None = None
+        ) -> None:
         canonical_name = names[0]
         shared_flag = flag(
             canonical_name=canonical_name,
-            value=True if type == bool else default,
-            type=type,
+            value=default,
+            value_type=value_type,
             validator=validator
         )
 
         for eachArg in names:
             self.flag_values[eachArg] = shared_flag
-            self.helpers[eachArg] = self._helper_string(helper, default, type)
+            self.helpers[eachArg] = self._helper_string(helper, default, value_type)
         
         if required:
             self.required_flags.append(canonical_name)
         pass
 
-    def add_string(self, names:list[str], helper: str, default: str="", required: bool=False, validator: Callable[[Any], bool] | None = None):
-        return self.add(names=names, helper=helper, type=str, default=default, required=required, validator=validator)
+    def add_string(self, names:list[str], helper: str, default: str="", required: bool=False, validator: Callable[[Any], bool] | None = None) -> None:
+        return self.add(names=names, helper=helper, value_type=str, default=default, required=required, validator=validator)
     
-    def add_int(self, names:list[str], helper: str, default: int=0, required: bool=False, validator: Callable[[Any], bool] | None = None):
-       return self.add(names=names, helper=helper, type=int, default=default, required=required, validator=validator)
+    def add_int(self, names:list[str], helper: str, default: int=0, required: bool=False, validator: Callable[[Any], bool] | None = None) -> None:
+       return self.add(names=names, helper=helper, value_type=int, default=default, required=required, validator=validator)
 
-    def add_bool(self, names:list[str], helper: str, default: bool=False, required: bool=False, validator: Callable[[Any], bool] | None = None):
-       return self.add(names=names, helper=helper, type=bool, default=default, required=required, validator=validator)
+    def add_bool(self, names:list[str], helper: str, default: bool=False, required: bool=False, validator: Callable[[Any], bool] | None = None) -> None:
+       return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, validator=validator)
     
-    def add_file(self, names: list[str], helper: str, default: str = "", required: bool = False, validator: Callable[[Any], bool] | None = None):
-        return self.add(names=names, helper=helper, type=Path, default=default, required=required, validator=validator)
+    def add_file(self, names: list[str], helper: str, default: str = "", required: bool = False, validator: Callable[[Any], bool] | None = None) -> None:
+        return self.add(names=names, helper=helper, value_type=Path, default=default, required=required, validator=validator)
 
     def check_flag(self, argument) -> bool:
-        for arg in self.flag_values.keys():
-            if arg == argument:
-                return True
-        else:
-            return False
+        return argument in self.flag_values.keys()
 
-    def parse(self, parse_arguments: list[str]):
+    def parse(self, parse_arguments: list[str]) -> None:
         current_key = ""
         # Check all arguments
         for arg in parse_arguments:
@@ -92,7 +107,7 @@ class Flags:
                 current_flag = self.flag_values[arg]
                 current_key = current_flag.canonical_name
                 # If it's boolean deal with it now and turn it to True
-                if self.flag_values[current_key].type == bool:
+                if self.flag_values[current_key].value_type == bool:
                     # Get the flag
                     current_flag = self.flag_values[current_key]
                     # Set the value
@@ -105,12 +120,9 @@ class Flags:
                         self.required_flags.remove(arg)
             else:
                 if current_key != "":
-                   # Get the flag
                     current_flag = self.flag_values[current_key]
-
-                    # Set the value
-                    if current_flag.type != str:
-                        current_flag.value = self._convert(arg, current_flag.type)
+                    if current_flag.value_type != str:
+                        current_flag.value = self._convert(arg, current_flag.value_type)
                     else:
                         current_flag.value = arg
 
@@ -120,29 +132,28 @@ class Flags:
                         if not current_flag.validator(current_flag.value):
                             raise ValueError(f"Invalid value for {current_key}: {current_flag.value}")
 
-                    # Reset the value
                     if current_key in self.required_flags:
                         self.required_flags.remove(current_key)
 
                     current_key = ""
                 else:
-                    raise ValueError("There is no flag for: ", arg)
+                    raise ValueError(f"There is no flag for: {arg}")
+                
         if len(self.required_flags):
-            raise ValueError("Argument missing: ", ', '.join(self.required_flags))
+            raise ValueError(f"Argument missing: {', '.join(self.required_flags)}")
     
     def get_flags(self) -> dict[str, str | int | bool]:
         return_dict = {}
 
         for key, flag in self.flag_values.items():
-            if flag.value != None:
+            if flag.value is not None:
                 return_dict[key] = flag.value
-
         return return_dict
     
     def get_value(self, key) -> str | int | bool:
         return self.flag_values[key].value
 
-    def help_text(self):
+    def help_text(self) -> None:
         print("USAGE:")
         for flag, value in self.helpers.items():
             print(f"\n{flag=},{value}")
