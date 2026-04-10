@@ -1,7 +1,10 @@
 import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 from pyflags.flag import Flags
+from typing import Any
+
 
 class TestArgument(unittest.TestCase):
     def setUp(self):
@@ -61,6 +64,19 @@ class TestArgument(unittest.TestCase):
         self.assertIn("-n", flags)
         self.assertEqual(flags["-n"], 3)
         self.assertIsInstance(flags["-n"], int)
+    
+    def test_add_float_creates_float_flag(self):
+        self.args.add_float(
+            names=["-n"],
+            helper="Number of retries",
+            default=3.0,
+        )
+
+        flags = self.args.get_flags()
+
+        self.assertIn("-n", flags)
+        self.assertEqual(flags["-n"], 3.0)
+        self.assertIsInstance(flags["-n"], float)
 
     def test_add_bool_creates_bool_flag(self):
         self.args.add_bool(
@@ -156,6 +172,16 @@ class TestParse(unittest.TestCase):
         self.assertIsInstance(flags["--number"], int)
         self.assertEqual(flags["--number"], 1)
 
+
+    def test_parse_sets_float_flag_value(self):
+        self.args.add_float(names=["--number"], helper="A random number")
+
+        self.args.parse(["--number", "1.0"])
+
+        flags = self.args.get_flags()
+        self.assertIsInstance(flags["--number"], float)
+        self.assertEqual(flags["--number"], 1.0)
+
     def test_parse_sets_file_flag_value_when_file_exists(self):
         self.args.add_file(names=["--config"], helper="Config file path", default="")
 
@@ -234,6 +260,17 @@ class TestParse(unittest.TestCase):
         self.args.parse(["--workers", "2"])
 
         self.assertEqual(self.args.get_value("--workers"), 2)
+    
+    def test_parse_accepts_valid_float_choice(self):
+        self.args.add_float(
+            names=["--workers"],
+            helper="Worker count",
+            choices=[1.0, 2.0, 4.0],
+        )
+
+        self.args.parse(["--workers", "2.0"])
+
+        self.assertEqual(self.args.get_value("--workers"), 2.0)
 
     def test_parse_rejects_invalid_int_choice(self):
         self.args.add_int(
@@ -244,6 +281,49 @@ class TestParse(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.args.parse(["--workers", "3"])
+    
+    def test_parse_rejects_invalid_float_choice(self):
+        self.args.add_float(
+            names=["--workers"],
+            helper="Worker count",
+            choices=[1.0, 2.0, 4.0],
+        )
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--workers", "3.0"])
+    
+    def test_parse_converts_custom_parser(self):
+        def convert_float(x) -> Any:
+            try: 
+                return float(x) 
+            except: 
+                return False
+            
+        self.args.add(
+            names=["--workers"],
+            helper="Worker count",
+            value_type=float,
+            choices=[1.0, 2.0, 4.0],
+            custom_parse=lambda x: convert_float(x),
+        )
+
+        self.args.parse(["--workers", "2.0"])
+
+        self.assertEqual(self.args.get_value("--workers"), 2.0)
+
+    @patch("builtins.input", return_value="my-app")
+    def test_interactive_mode_prompts_for_missing_required_flag(self, mock_input):
+        self.args.add_string(
+            names=["--project", "-p"],
+            helper="Project name",
+            required=True,
+        )
+        self.args.activate_interactive_mode()
+
+        self.args.parse([])
+
+        self.assertEqual(self.args.get_value("--project"), "my-app")
+        mock_input.assert_called_once()
     
     def test_parse_missing_flag_value(self):
 
