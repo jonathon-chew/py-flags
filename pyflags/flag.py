@@ -115,10 +115,9 @@ class Flags:
         helper: str, 
         default: bool=False, 
         required: bool=False,
-        choices: list[bool] | None = None,
         validator: Callable[[Any], bool] | None = None,
     ) -> None:
-       return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, choices=choices, validator=validator)
+       return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, validator=validator)
     
     def add_file(
         self, 
