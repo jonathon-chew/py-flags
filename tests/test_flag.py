@@ -202,6 +202,48 @@ class TestParse(unittest.TestCase):
         self.args.parse(["--env", "prod"])
 
         self.assertEqual(self.args.get_value("--env"), "prod")
+
+    def test_parse_accepts_valid_string_choice(self):
+        self.args.add_string(
+            names=["--env"],
+            helper="Environment name",
+            choices=["dev", "test", "prod"],
+        )
+
+        self.args.parse(["--env", "dev"])
+
+        self.assertEqual(self.args.get_value("--env"), "dev")
+
+    def test_parse_rejects_invalid_string_choice(self):
+        self.args.add_string(
+            names=["--env"],
+            helper="Environment name",
+            choices=["dev", "test", "prod"],
+        )
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--env", "staging"])
+
+    def test_parse_accepts_valid_int_choice(self):
+        self.args.add_int(
+            names=["--workers"],
+            helper="Worker count",
+            choices=[1, 2, 4],
+        )
+
+        self.args.parse(["--workers", "2"])
+
+        self.assertEqual(self.args.get_value("--workers"), 2)
+
+    def test_parse_rejects_invalid_int_choice(self):
+        self.args.add_int(
+            names=["--workers"],
+            helper="Worker count",
+            choices=[1, 2, 4],
+        )
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--workers", "3"])
     
     def test_parse_missing_flag_value(self):
 

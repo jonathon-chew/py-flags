@@ -7,12 +7,14 @@ class flag:
         canonical_name: str, 
         value: str|int|bool|None = None, 
         value_type: type=str, 
+        choices: list[str|int|bool] | None = None,
         validator: Callable[[Any], bool] | None = None
     )-> None: 
         self.name = canonical_name
         self.canonical_name = canonical_name
         self.value = value
         self.value_type = value_type
+        self.choices = choices
         self.validator = validator
 
 class Flags:
@@ -65,6 +67,7 @@ class Flags:
             value_type: type, 
             default: str|int|bool|None = None, 
             required: bool=False, 
+            choices: list[Any] | None = None,
             validator: Callable[[Any], bool] | None = None
         ) -> None:
         canonical_name = names[0]
@@ -72,6 +75,7 @@ class Flags:
             canonical_name=canonical_name,
             value=default,
             value_type=value_type,
+            choices=choices,
             validator=validator
         )
 
@@ -83,17 +87,49 @@ class Flags:
             self.required_flags.append(canonical_name)
         pass
 
-    def add_string(self, names:list[str], helper: str, default: str="", required: bool=False, validator: Callable[[Any], bool] | None = None) -> None:
-        return self.add(names=names, helper=helper, value_type=str, default=default, required=required, validator=validator)
+    def add_string(
+        self, 
+        names:list[str], 
+        helper: str, 
+        default: str="", 
+        required: bool=False,
+        choices: list[str] | None = None,
+        validator: Callable[[Any], bool] | None = None,
+    ) -> None:
+        return self.add(names=names, helper=helper, value_type=str, default=default, required=required, choices=choices, validator=validator)
     
-    def add_int(self, names:list[str], helper: str, default: int=0, required: bool=False, validator: Callable[[Any], bool] | None = None) -> None:
-       return self.add(names=names, helper=helper, value_type=int, default=default, required=required, validator=validator)
+    def add_int(
+        self, 
+        names:list[str], 
+        helper: str, 
+        default: int=0, 
+        required: bool=False,
+        choices: list[int] | None = None,
+        validator: Callable[[Any], bool] | None = None,
+    ) -> None:
+       return self.add(names=names, helper=helper, value_type=int, default=default, required=required, choices=choices, validator=validator)
 
-    def add_bool(self, names:list[str], helper: str, default: bool=False, required: bool=False, validator: Callable[[Any], bool] | None = None) -> None:
-       return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, validator=validator)
+    def add_bool(
+        self, 
+        names:list[str], 
+        helper: str, 
+        default: bool=False, 
+        required: bool=False,
+        choices: list[bool] | None = None,
+        validator: Callable[[Any], bool] | None = None,
+    ) -> None:
+       return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, choices=choices, validator=validator)
     
-    def add_file(self, names: list[str], helper: str, default: str = "", required: bool = False, validator: Callable[[Any], bool] | None = None) -> None:
-        return self.add(names=names, helper=helper, value_type=Path, default=default, required=required, validator=validator)
+    def add_file(
+        self, 
+        names: list[str], 
+        helper: str, 
+        default: str = "", 
+        required: bool = False,
+        choices: list[str] | None = None,
+        validator: Callable[[Any], bool] | None = None,
+    ) -> None:
+        return self.add(names=names, helper=helper, value_type=Path, default=default, required=required, choices=choices, validator=validator)
 
     def check_flag(self, argument) -> bool:
         return argument in self.flag_values.keys()
@@ -131,6 +167,11 @@ class Flags:
                         # If the function returns negative, raise error
                         if not current_flag.validator(current_flag.value):
                             raise ValueError(f"Invalid value for {current_key}: {current_flag.value}")
+                        
+                    if current_flag.choices is not None:
+                        if current_flag.value not in current_flag.choices:
+                            raise ValueError(f"{current_flag.value} is not one of the possible choices {current_flag.choices}")
+                        pass
 
                     if current_key in self.required_flags:
                         self.required_flags.remove(current_key)
