@@ -12,12 +12,17 @@
 - writing unit tests for both success and failure cases
 
 ## Current Features
+- support string, integer, float, boolean, and file flags
 - allow aliases to share the same underlying flag value
 - support explicit `choices` for accepted values
 - support custom validation functions for parsed values
+- support custom parse hooks for advanced conversion
 - support interactive prompting for missing required flags
+- support optional prompting for missing values during script execution (`resolve()`)
+- support inline `--flag=value` style input
 - return a clean dictionary of parsed values with `get_flags()`
 - get parsed values directly with `get_value()`
+- provide `get_optional()` and `resolve()` helpers for safer script flows
 - raise errors for unknown flags and missing required flags
 
 ## How To Run
@@ -68,7 +73,7 @@ flags.parse(sys.argv[1:])
 
 project_name = flags.get_value("--project")
 environment = flags.get_value("--env")
-port = flags.get_value("--port")
+port = flags.get_optional("--port", 8000)
 config_path = flags.get_value("--config")
 
 if flags.get_value("--verbose"):
@@ -80,15 +85,21 @@ print(f"Creating project: {project_name} in {environment} on port {port}")
 Example command:
 
 ```bash
-python3 app.py --env prod --port 8080 --verbose
+python3 app.py --env=prod --port=8080 --verbose
 ```
 
 Example interactive session:
 
 ```text
-[prompt] --project is required
+--project (str) is required.
+Project name
+Type: <class 'str'>
+Default Value is set as: None
 my-app
-[prompt] --config is required
+--config (Path) is required.
+Config file
+Type: <class 'pathlib.Path'>
+Default Value is set as: None
 settings.json
 [verbose] Loading config from settings.json
 Creating project: my-app in prod on port 8080
@@ -129,6 +140,7 @@ Many popular Python CLI parsers focus on declaration and immediate failure. This
 - shared alias handling through one logical flag object
 - validation layers with `choices`, custom validators, and file-path checks
 - interactive recovery for missing required flags instead of always exiting immediately
+- helper methods like `get_optional()` and `resolve()` for safer script-level usage
 
 That combination makes it useful not just for strict CLIs, but also for lightweight internal tools and guided scripts.
 
@@ -139,6 +151,8 @@ This project uses Python's built-in `unittest` module. The tests currently cover
 - helper text and flag lookup behavior
 - generic `add(...)` behavior and shared alias objects
 - value-facing `get_flags()` and `get_value()` behavior
+- safer access patterns through `get_optional()` and `resolve()`
+- inline `--flag=value` parsing
 - successful parsing for string, integer, boolean, and file flags
 - accepted and rejected values enforced through `choices`
 - custom validation for accepted and rejected values

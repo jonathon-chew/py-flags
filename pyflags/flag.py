@@ -34,9 +34,15 @@ class Flags:
         default:str|int|bool|float|None = None, 
         value_type:type=str
     ) -> str:
+        """
+        Create the helper message to be passed back to the user to try and guide them what is missing and what this will need to be
+        """
         return f"{helper}\nType: {value_type}\nDefault Value is set as: {default}"
     
     def _convert(self, value: str = "", target_type: str|int|bool|float|None = None) -> type | None:
+        """
+        Handling type conversion for supported input typess
+        """
         if target_type is int:
             try:
                 return int(value)
@@ -72,11 +78,17 @@ class Flags:
         return self.flag_values
     
     def _parse_value(self, raw: str, flag) -> Any:
+        """
+        Internal function for ascertaining whether to use the supported internal logic to convert the type to the right value OR the passed in function
+        """
         if flag.custom_parse:
             return flag.custom_parse(raw)
         return self._convert(raw, flag.value_type)
     
     def _set_flag_value(self, current_flag: flag, value: Any, current_key) -> None:
+        """
+        Refactored logic from the parser so this can be called for missing flags and at other points
+        """
          # Check if there is a function to check the input
         if current_flag.validator is not None:
             # If the function returns negative, raise error
@@ -93,6 +105,16 @@ class Flags:
         
         current_flag.value = value
     
+    def _add_missing_key(self, key: str) -> None:
+        """
+        Internal function for asking the user for input!
+        """
+        print(f"{key} ({self.flag_values[key].value_type.__name__}) is required.")
+        print(f"{self.helpers[key]}")
+        info = input()
+        parseed_value = self._parse_value(info, self.flag_values[key])
+        self._set_flag_value(self.flag_values[key], parseed_value, key)
+    
     def add(
             self, 
             names: list[str], 
@@ -104,6 +126,9 @@ class Flags:
             validator: Callable[[Any], bool] | None = None,
             custom_parse: Callable[[Any], Any] | None = None,
         ) -> None:
+        """
+        The basis of the logic - make a flag and all it's aliases and set all the values
+        """
         canonical_name = names[0]
         shared_flag = flag(
             canonical_name=canonical_name,
@@ -126,71 +151,99 @@ class Flags:
         self, 
         names:list[str], 
         helper: str, 
-        default: str="", 
+        default: str | None = None,
         required: bool=False,
         choices: list[str] | None = None,
         validator: Callable[[Any], bool] | None = None,
         custom_parse: Callable[[Any], Any] | None = None
     ) -> None:
+        """
+        Concise calling - this only needs a name / names and a helper string to call to make a flag which has a value of a string
+        """
         return self.add(names=names, helper=helper, value_type=str, default=default, required=required, choices=choices, validator=validator, custom_parse=custom_parse)
     
     def add_int(
         self, 
         names:list[str], 
         helper: str, 
-        default: int=0, 
+        default: int | None = None,
         required: bool=False,
         choices: list[int] | None = None,
         validator: Callable[[Any], bool] | None = None,
         custom_parse: Callable[[Any], Any] | None = None
     ) -> None:
-       return self.add(names=names, helper=helper, value_type=int, default=default, required=required, choices=choices, validator=validator, custom_parse=custom_parse)
+        """
+        Concise calling - this only needs a name / names and a helper string to call to make a flag which has a value of a int
+        """
+        return self.add(names=names, helper=helper, value_type=int, default=default, required=required, choices=choices, validator=validator, custom_parse=custom_parse)
 
     def add_bool(
         self, 
         names:list[str], 
         helper: str, 
-        default: bool=False, 
+        default: bool,
         required: bool=False,
         validator: Callable[[Any], bool] | None = None,
         custom_parse: Callable[[Any], Any] | None = None
     ) -> None:
-       return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, validator=validator, custom_parse=custom_parse)
+        """
+        Concise calling - this only needs a name / names and a helper string to call to make a flag which has a value of a boolean
+        All booleans are false by default, users declare the flag to turn it to true (unless otherwise specified)
+        """
+        return self.add(names=names, helper=helper, value_type=bool, default=default, required=required, validator=validator, custom_parse=custom_parse)
     
     def add_file(
         self, 
         names: list[str], 
         helper: str, 
-        default: str = "", 
+        default: str | None = None,
         required: bool = False,
         choices: list[str] | None = None,
         validator: Callable[[Any], bool] | None = None,
         custom_parse: Callable[[Any], Any] | None = None
     ) -> None:
+        """
+        Concise calling - this only needs a name / names and a helper string to call to make a flag which has a value of a string
+        This confirms the path of the file is valid and not malformed/missing in anyway
+        """
         return self.add(names=names, helper=helper, value_type=Path, default=default, required=required, choices=choices, validator=validator, custom_parse=custom_parse)
     
     def add_float(
         self, 
         names: list[str], 
         helper: str, 
-        default: float = 0.0, 
+        default: float | None = None,
         required: bool = False,
         choices: list[float] | None = None,
         validator: Callable[[Any], bool] | None = None,
         custom_parse: Callable[[Any], Any] | None = None
     ) -> None:
+        """
+        Concise calling - this only needs a name / names and a helper string to call to make a flag which has a value of a float
+        """
         return self.add(names=names, helper=helper, value_type=float, default=default, required=required, choices=choices, validator=validator, custom_parse=custom_parse)
 
     def check_flag(self, argument: str) -> bool:
         return argument in self.flag_values.keys()
 
     def parse(self, parse_arguments: list[str]) -> None:
+        """
+        Parsed what has been passed in -> if it's a flag or value based upon what has been stored
+        """
         current_key = ""
         missing = set(self.required_flags)
         # Check all arguments
         for arg in parse_arguments:
             if "=" in arg:
                 key, value = arg.split("=", 1)
+                if key in self.flag_values:
+                    current_flag = self.flag_values[key]
+                    current_key = current_flag.canonical_name
+                    parsed_value = self._parse_value(value, current_flag)
+                    self._set_flag_value(current_flag, parsed_value, current_key)
+                    current_key = ""
+                    continue
+                raise ValueError(f"There is no flag for: {key}")
             # If this is a known flag switch to it
             if arg in self.flag_values:
                 current_flag = self.flag_values[arg]
@@ -203,10 +256,9 @@ class Flags:
                     current_flag.value = True
                     # Reset the value
                     self.flag_values[current_key] = current_flag
-                    current_flag, current_key = "", ""
-
                     if current_key in missing:
-                        missing.remove(arg)
+                        missing.remove(current_key)
+                    current_flag, current_key = "", ""
             else:
                 if current_key != "":
                     current_flag = self.flag_values[current_key]
@@ -217,19 +269,25 @@ class Flags:
                     current_key = ""
                 else:
                     raise ValueError(f"There is no flag for: {arg}")
-                
+    
+    def resolve_all(self):
+        """
+        Force all required flags to be handled when ever you want in your script
+        """
+        missing = list(self.required_flags)
         if len(missing):
             if not self.interactive_mode:
                 raise ValueError(f"Argument missing: {', '.join(missing)}")
             else:
                 for missing_flag in missing:
-                    print(f"{missing_flag} ({self.flag_values[missing_flag].value_type.__name__}) is required.")
-                    print(f"{self.helpers[missing_flag]}")
-                    info = input()
-                    parseed_value = self._parse_value(info, self.flag_values[missing_flag])
-                    self._set_flag_value(self.flag_values[missing_flag], parseed_value, missing_flag)
+                    flag = self.flag_values[missing_flag]
+                    if flag.value is None:
+                        self._add_missing_key(missing_flag)
     
-    def get_flags(self) -> dict[str, str | int | bool]:
+    def get_flags(self) -> dict[str, str | int | bool | float]:
+        """
+        Useful for debuging, showing currently set states of all passed in flags
+        """
         return_dict = {}
 
         for key, flag in self.flag_values.items():
@@ -237,16 +295,79 @@ class Flags:
                 return_dict[key] = flag.value
         return return_dict
     
+    def has_value(self, key: str) -> bool :
+        """
+        Simple debuging for calling a specific flag and confirming whether or not the flag was provided
+        """
+        return self.flag_values[key].value is not None
+    
+    def resolve(self, key:str) -> Any:  
+        """
+        Call this function if you want the user to be prompted if the flag is not set, so the script / flow doesn't break
+        
+        eg. if flags.get_value("--save"):
+                file = flags.resolve("--output-file")
+        
+        If they forget to set an output file this will ask!
+
+        This is intended to be safe and interactive
+        """
+        flag = self.flag_values[key]
+
+        if flag.value is None:
+            if not self.interactive_mode:
+                raise ValueError(f"{key} is required but not set")
+
+            self._add_missing_key(key)
+
+        return flag.value
+    
+    def get_optional(self, key: str, default: Any) -> str | int | bool | float:
+        """
+        Call this function if you want to check if the user chose something or not, and set a default if they did not
+        
+        eg. if flags.get_value("--output", "./results.json"): ...
+        
+        If the user has set the flag, it will return the flag value OR use something you define
+
+        This is intended to be safe
+        """
+        flag = self.flag_values[key]
+        return flag.value if flag.value is not None else default
+    
+    def get_value(self, key: str) -> str | int | bool | float:
+        """
+        Call this function if you don't want the user to be prompted if the flag is not set AND the value MUST be set with no fall back if not
+        
+        eg. if flags.get_value("--override"): ...
+        
+        If the user has set the flag, this will return value (assuming it's a bool flag, it' will return true)
+
+        This is intentionally strict
+        """
+
+        if self.flag_values[key].value is not None:
+            return self.flag_values[key].value
+        else:
+            raise ValueError(f"{key} is not set")
+    
     def debug_flags(self) -> str:
+        """
+        Return a JSON string as to the current set up config - useful for logging
+        """
         return dumps(self.get_flags())
     
     def activate_interactive_mode(self) -> None:
+        """
+        Helper function to configure the CLI - this means users will be prompted for required flags if missing
+        Users will also be prompted at any stage get_value is called and the flag is not set BUT the flag is not required
+        """
         self.interactive_mode = True
     
-    def get_value(self, key: str) -> str | int | bool:
-        return self.flag_values[key].value
-
     def help_text(self) -> None:
+        """
+        Print to screen the possible options, the definied helper text, and key information
+        """
         print("USAGE:")
         for flag, value in self.helpers.items():
             print(f"\n{flag=},{value}")

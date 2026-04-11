@@ -1,4 +1,5 @@
 import unittest
+import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch
@@ -141,6 +142,22 @@ class TestArgument(unittest.TestCase):
 
         self.assertEqual(self.args.get_value("--project"), "demo-app")
 
+    def test_was_provided_is_false_before_parse(self):
+        self.args.add_string(
+            names=["--project"],
+            helper="Project name",
+        )
+
+        self.assertFalse(self.args.has_value("--project"))
+
+    def test_get_optional_returns_default_when_not_set(self):
+        self.args.add_string(
+            names=["--output"],
+            helper="Output file",
+        )
+
+        self.assertEqual(self.args.get_optional("--output", "./results.json"), "./results.json")
+
 
 
 class TestParse(unittest.TestCase):
@@ -171,6 +188,20 @@ class TestParse(unittest.TestCase):
         flags = self.args.get_flags()
         self.assertIsInstance(flags["--number"], int)
         self.assertEqual(flags["--number"], 1)
+
+    def test_parse_sets_value_with_equals_syntax(self):
+        self.args.add_string(names=["--env"], helper="Environment")
+
+        self.args.parse(["--env=prod"])
+
+        self.assertEqual(self.args.get_value("--env"), "prod")
+
+    def test_parse_sets_int_value_with_equals_syntax(self):
+        self.args.add_int(names=["--workers"], helper="Worker count")
+
+        self.args.parse(["--workers=4"])
+
+        self.assertEqual(self.args.get_value("--workers"), 4)
 
 
     def test_parse_sets_float_flag_value(self):
@@ -321,9 +352,35 @@ class TestParse(unittest.TestCase):
         self.args.activate_interactive_mode()
 
         self.args.parse([])
+        self.args.resolve_all()
 
         self.assertEqual(self.args.get_value("--project"), "my-app")
         mock_input.assert_called_once()
+
+    @patch("builtins.input", return_value="./results.json")
+    def test_resolve_prompts_for_missing_optional_value(self, mock_input):
+        self.args.add_string(
+            names=["--output"],
+            helper="Output file",
+        )
+        self.args.activate_interactive_mode()
+
+        value = self.args.resolve("--output")
+
+        self.assertEqual(value, "./results.json")
+        self.assertTrue(self.args.has_value("--output"))
+        mock_input.assert_called_once()
+
+    def test_debug_flags_returns_json_string(self):
+        self.args.add_string(
+            names=["--project"],
+            helper="Project name",
+        )
+        self.args.parse(["--project", "my-app"])
+
+        result = self.args.debug_flags()
+
+        self.assertEqual(json.loads(result), {"--project": "my-app"})
     
     def test_parse_missing_flag_value(self):
 
