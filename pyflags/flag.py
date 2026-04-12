@@ -1,4 +1,3 @@
-import os
 from json import dumps
 from pathlib import Path
 from typing import Callable, Any
@@ -279,20 +278,13 @@ class Flags:
             if not self.interactive_mode:
                 raise ValueError(f"Argument missing: {', '.join(missing)}")
             else:
-                for missing_flag in missing:
-                    flag = self.flag_values[missing_flag]
-                    if flag.value is None:
-                        self._add_missing_key(missing_flag)
+                _ = [self._add_missing_key(missing_flag) for missing_flag in missing if self.flag_values[missing_flag].value is None]
     
     def get_flags(self) -> dict[str, str | int | bool | float]:
         """
         Useful for debuging, showing currently set states of all passed in flags
         """
-        return_dict = {}
-
-        for key, flag in self.flag_values.items():
-            if flag.value is not None:
-                return_dict[key] = flag.value
+        return_dict = {key: flag.value for key, flag in self.flag_values.items() if flag.value is not None}
         return return_dict
     
     def has_value(self, key: str) -> bool :
