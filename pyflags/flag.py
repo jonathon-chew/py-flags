@@ -249,25 +249,31 @@ class Flags:
                 current_key = current_flag.canonical_name
                 # If it's boolean deal with it now and turn it to True
                 if self.flag_values[current_key].value_type == bool:
-                    # Get the flag
-                    current_flag = self.flag_values[current_key]
-                    # Set the value
                     current_flag.value = True
-                    # Reset the value
-                    self.flag_values[current_key] = current_flag
+
                     if current_key in missing:
                         missing.remove(current_key)
-                    current_flag, current_key = "", ""
-            else:
-                if current_key != "":
-                    current_flag = self.flag_values[current_key]
-                    parseed_value = self._parse_value(arg, current_flag)
-
-                    self._set_flag_value(current_flag, parseed_value, current_key)
-
                     current_key = ""
+                    continue
+            else:
+                if current_key:
+                    current_flag = self.flag_values[current_key]
                 else:
                     raise ValueError(f"There is no flag for: {arg}")
+                
+                if current_flag.value_type == bool:
+                    parsed_value = self._convert(arg, current_flag.value_type)
+                else:
+                    parsed_value = self._parse_value(arg, current_flag)
+
+                self._set_flag_value(current_flag, parsed_value, current_key)
+
+                current_key = ""
+                
+    def parse_and_resolve(self, parse_arguments: list[str]) -> None:
+        self.activate_interactive_mode()
+        self.parse(parse_arguments)
+        self.resolve_all()
     
     def resolve_all(self):
         """
@@ -363,3 +369,19 @@ class Flags:
         print("USAGE:")
         for flag, value in self.helpers.items():
             print(f"\n{flag=},{value}")
+
+    def help_text_ordered(self) -> None:
+        print("USAGE:")
+
+        # Required first
+        for flag in self.required_flags:
+            print(f"\n{flag} (required)")
+            print(self.helpers[flag])
+
+        # Then optional
+        for flag, helper in self.helpers.items():
+            if flag in self.required_flags:
+                continue
+
+            print(f"\n{flag} (optional)")
+            print(helper)

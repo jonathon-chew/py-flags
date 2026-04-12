@@ -18,12 +18,21 @@
 - support custom validation functions for parsed values
 - support custom parse hooks for advanced conversion
 - support interactive prompting for missing required flags
+- support one-call interactive parsing with `parse_and_resolve()`
 - support optional prompting for missing values during script execution (`resolve()`)
 - support inline `--flag=value` style input
 - return a clean dictionary of parsed values with `get_flags()`
 - get parsed values directly with `get_value()`
 - provide `get_optional()` and `resolve()` helpers for safer script flows
 - raise errors for unknown flags and missing required flags
+
+## Behavior Notes (Current)
+- **Canonical name:** the *first* entry in `names=[...]` becomes the canonical name for that flag. Required flags are tracked by canonical name.
+- **Aliases:** aliases share one flag object, but `get_flags()` returns entries for *each alias key* (so values are duplicated across aliases).
+- **Required flags:** `parse()` does not fail at the end if required flags are missing; use `resolve_all()` (or call `get_value()` / `resolve()` on the missing flag) to surface missing-required errors.
+- **Boolean flags:** providing a boolean flag token (e.g. `--verbose`) sets it to `True`. To explicitly set `False`, use equals syntax (e.g. `--verbose=false`). The split form `--verbose false` is not supported.
+- **Boolean value strings:** equals syntax accepts `true/false`, `1/0`, `yes/no`, and `on/off`.
+- **File flags:** file flags validate that the provided path exists at parse-time (and raise `FileNotFoundError` if it does not).
 
 ## How To Run
 
@@ -41,8 +50,8 @@ from pyflags.flag import Flags
 from pyflags.flag import Flags
 
 flags = Flags()
-flags.add(names=["-p", "--project"], helper="Project name", value_type=str, default="demo")
-flags.add(names=["-n", "--number"], helper="Build number", value_type=int, default=1)
+flags.add(names=["--project", "-p"], helper="Project name", value_type=str, default="demo")
+flags.add(names=["--number", "-n"], helper="Build number", value_type=int, default=1)
 flags.add(names=["--verbose"], helper="Enable verbose logging", value_type=bool, default=False)
 flags.add_file(names=["--config", "-c"], helper="Path to config file")
 
@@ -52,7 +61,7 @@ print(flags.get_flags())
 Example output:
 
 ```python
-{"-p": "demo", "--project": "demo", "-n": 1, "--number": 1, "--verbose": True, "--config": ""}
+{"--project": "demo", "-p": "demo", "--number": 1, "-n": 1, "--verbose": False}
 ```
 
 ### Real Script Example
@@ -70,6 +79,7 @@ flags.add_file(["--config", "-c"], "Config file", required=True)
 flags.add(["--verbose"], "Enable verbose logging", bool, default=False)
 
 flags.parse(sys.argv[1:])
+flags.resolve_all()
 
 project_name = flags.get_value("--project")
 environment = flags.get_value("--env")
@@ -100,7 +110,7 @@ my-app
 Config file
 Type: <class 'pathlib.Path'>
 Default Value is set as: None
-settings.json
+./settings.json
 [verbose] Loading config from settings.json
 Creating project: my-app in prod on port 8080
 ```
@@ -111,7 +121,17 @@ In this flow:
 - the user enters `my-app` and `settings.json`
 - the script continues with the completed set of values
 
+Note: because `--config` is a file flag, the path provided must exist when it is parsed/resolved.
+
 If interactive mode is enabled, missing mandatory flags can be prompted for instead of immediately failing. That makes the parser useful for internal tools and setup scripts where a guided CLI experience is preferable to a hard stop.
+
+You can also use the convenience wrapper:
+
+```python
+flags.parse_and_resolve(sys.argv[1:])
+```
+
+That enables interactive mode, parses the passed arguments, and then resolves any missing required flags in one call.
 
 ### Alias Example
 
@@ -153,17 +173,27 @@ This project uses Python's built-in `unittest` module. The tests currently cover
 - value-facing `get_flags()` and `get_value()` behavior
 - safer access patterns through `get_optional()` and `resolve()`
 - inline `--flag=value` parsing
+- `parse_and_resolve()` convenience behavior
 - successful parsing for string, integer, boolean, and file flags
+- accepted and rejected boolean string values in equals syntax
 - accepted and rejected values enforced through `choices`
 - custom validation for accepted and rejected values
 - file-path validation for existing and missing files
+- invalid integer and float conversions
 - interactive prompting for missing required flags
+- help output rendering
 - failure cases such as unknown flags and missing required arguments
 
 Run the full test suite with:
 
 ```bash
 python3 -m unittest discover -s tests
+```
+
+Or use the helper script:
+
+```bash
+bash tests/run_tests.sh
 ```
 
 ## What I Learned
