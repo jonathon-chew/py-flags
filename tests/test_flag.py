@@ -1,5 +1,6 @@
 import unittest
 import json
+import io
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch
@@ -164,6 +165,18 @@ class TestParse(unittest.TestCase):
     def setUp(self):
         self.args = Flags()
 
+    def test_parse_sets_alias_and_canonical_values_together(self):
+        self.args.add_string(names=["--project", "-p"], helper="Project name")
+
+        self.args.parse(["-p", "demo"])
+
+        self.assertEqual(self.args.get_value("--project"), "demo")
+        self.assertEqual(self.args.get_value("-p"), "demo")
+        self.assertEqual(
+            self.args.get_flags(),
+            {"--project": "demo", "-p": "demo"},
+        )
+
     def test_parse_sets_bool_flag_true_when_present(self):
         self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=False)
 
@@ -171,6 +184,39 @@ class TestParse(unittest.TestCase):
 
         flags = self.args.get_flags()
         self.assertTrue(flags["--verbose"])
+
+    def test_parse_sets_bool_flag_true_with_yes_equals_syntax(self):
+        self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=False)
+
+        self.args.parse(["--verbose=yes"])
+
+        self.assertTrue(self.args.get_value("--verbose"))
+
+    def test_parse_sets_bool_flag_false_with_equals_syntax(self):
+        self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=True)
+
+        self.args.parse(["--verbose=false"])
+
+        self.assertFalse(self.args.get_value("--verbose"))
+
+    def test_parse_sets_bool_flag_false_with_off_equals_syntax(self):
+        self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=True)
+
+        self.args.parse(["--verbose=off"])
+
+        self.assertFalse(self.args.get_value("--verbose"))
+
+    def test_parse_rejects_split_bool_value(self):
+        self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=False)
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--verbose", "false"])
+
+    def test_parse_rejects_invalid_bool_value_with_equals_syntax(self):
+        self.args.add_bool(names=["--verbose"], helper="Verbose mode", default=False)
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--verbose=maybe"])
 
     def test_parse_sets_string_flag_value(self):
         self.args.add_string(names=["-p"], helper="Project name", default="")
@@ -203,6 +249,17 @@ class TestParse(unittest.TestCase):
 
         self.assertEqual(self.args.get_value("--workers"), 4)
 
+    def test_parse_rejects_invalid_int_value(self):
+        self.args.add_int(names=["--workers"], helper="Worker count")
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--workers", "four"])
+
+    def test_parse_rejects_invalid_float_value(self):
+        self.args.add_float(names=["--ratio"], helper="Ratio")
+
+        with self.assertRaises(ValueError):
+            self.args.parse(["--ratio", "nope"])
 
     def test_parse_sets_float_flag_value(self):
         self.args.add_float(names=["--number"], helper="A random number")
@@ -351,10 +408,13 @@ class TestParse(unittest.TestCase):
         )
         self.args.activate_interactive_mode()
 
-        self.args.parse([])
-        self.args.resolve_all()
+        with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+            self.args.parse([])
+            self.args.resolve_all()
 
         self.assertEqual(self.args.get_value("--project"), "my-app")
+        self.assertIn("--project (str) is required.", stdout.getvalue())
+        self.assertIn("Project name", stdout.getvalue())
         mock_input.assert_called_once()
 
     @patch("builtins.input", return_value="./results.json")
@@ -365,11 +425,57 @@ class TestParse(unittest.TestCase):
         )
         self.args.activate_interactive_mode()
 
-        value = self.args.resolve("--output")
+        with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+            value = self.args.resolve("--output")
 
         self.assertEqual(value, "./results.json")
         self.assertTrue(self.args.has_value("--output"))
+        self.assertIn("--output (str) is required.", stdout.getvalue())
+        self.assertIn("Output file", stdout.getvalue())
         mock_input.assert_called_once()
+
+    @patch("builtins.input", return_value="demo-app")
+    def test_parse_and_resolve_enables_interactive_mode_and_prompts(self, mock_input):
+        self.args.add_string(
+            names=["--project", "-p"],
+            helper="Project name",
+            required=True,
+        )
+
+        with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+            self.args.parse_and_resolve([])
+
+        self.assertTrue(self.args.interactive_mode)
+        self.assertEqual(self.args.get_value("--project"), "demo-app")
+        self.assertIn("--project (str) is required.", stdout.getvalue())
+        mock_input.assert_called_once()
+
+    def test_resolve_all_raises_for_missing_required_flag(self):
+        self.args.add_string(
+            names=["--project", "-p"],
+            helper="Project name",
+            required=True,
+        )
+
+        with self.assertRaises(ValueError):
+            self.args.resolve_all()
+
+    def test_help_text_prints_registered_helpers(self):
+        self.args.add_string(
+            names=["--project", "-p"],
+            helper="Project name",
+            default="demo",
+        )
+
+        with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+            self.args.help_text()
+
+        output = stdout.getvalue()
+        self.assertIn("USAGE:", output)
+        self.assertIn("flag='--project'", output)
+        self.assertIn("flag='-p'", output)
+        self.assertIn("Project name", output)
+        self.assertIn("Default Value is set as: demo", output)
 
     def test_debug_flags_returns_json_string(self):
         self.args.add_string(
