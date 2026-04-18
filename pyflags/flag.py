@@ -6,9 +6,9 @@ class flag:
     def __init__(
         self, 
         canonical_name: str, 
-        value: str|int|bool|float|None = None, 
+        value: Any|None = None, 
         value_type: type=str, 
-        choices: list[str|int|bool|float] | None = None,
+        choices: list[Any] | None = None,
         validator: Callable[[Any], bool] | None = None,
         custom_parse: Callable[[Any], Any] | None = None
     )-> None: 
@@ -45,7 +45,7 @@ class Flags:
     def _helper_string(
         self, 
         helper:str, 
-        default:str|int|bool|float|None = None, 
+        default:Any|None = None, 
         value_type:type=str
     ) -> str:
         """
@@ -53,7 +53,7 @@ class Flags:
         """
         return f"{helper}\nType: {value_type}\nDefault Value is set as: {default}"
     
-    def _convert(self, value: str = "", target_type: str|int|bool|float|None = None) -> type | None:
+    def _convert(self, value: str = "", target_type: Any|None = None) -> Any | None:
         """
         Handling type conversion for supported input typess
         """
@@ -134,7 +134,7 @@ class Flags:
             names: list[str], 
             helper: str, 
             value_type: type, 
-            default: str|int|bool|float|None = None, 
+            default: Any|None = None, 
             required: bool=False, 
             choices: list[Any] | None = None,
             validator: Callable[[Any], bool] | None = None,
