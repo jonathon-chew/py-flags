@@ -499,5 +499,19 @@ class TestParse(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.args.parse(["1"])
 
+    def test_flag_attribute_from_dot(self):
+        self.args.add_int(names=["number", "-n"], helper="A random number", required=True, default=10)
+
+        result = self.args.number
+
+        self.assertEqual(result, 10)
+
+    def test_flag_attribute_from_dot_with_em_dashes(self):
+        self.args.add_int(names=["--number", "-n"], helper="A random number", required=True, default=10)
+
+        result = self.args.number
+
+        self.assertEqual(result, 10)
+
 if __name__ == "__main__":
     unittest.main()
