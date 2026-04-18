@@ -27,6 +27,21 @@ class Flags:
         self.required_flags = [] # str
         self.interactive_mode = False
 
+    def __getattr__(self, name) -> Any:
+        try:
+            if name in self.flag_values.keys():
+                return self.flag_values[name].value
+            
+            check_me = {self._normalize(k): v for k, v in self.flag_values.items()}
+            return check_me[name].value
+            
+        except:
+             raise AttributeError(f"No such attribute: {name}")
+
+
+    def _normalize(self, name: str) -> str:
+        return name.lstrip("-").replace("-", "_")
+
     def _helper_string(
         self, 
         helper:str, 
