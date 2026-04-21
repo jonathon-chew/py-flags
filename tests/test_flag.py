@@ -512,6 +512,26 @@ class TestParse(unittest.TestCase):
         result = self.args.number
 
         self.assertEqual(result, 10)
+    
+    def test_flag_accepts_lists_space_seperated(self):
+        self.args.add(
+            names=["--projects"],
+            helper="Project names",
+            value_type=list,
+        )
+        self.args.parse(["--projects", "my-app", "my-other-app"])
+        result = self.args.debug_flags()
+        self.assertEqual(json.loads(result), {"--projects": ["my-app", "my-other-app"]})
+
+    def test_flag_accepts_lists_with_multiple_flag_calls(self):
+        self.args.add(
+            names=["--projects"],
+            helper="Project names",
+            value_type=list,
+        )
+        self.args.parse(["--projects", "my-app", "--projects", "my-other-app"])
+        result = self.args.debug_flags()
+        self.assertEqual(json.loads(result), {"--projects": ["my-app", "my-other-app"]})
 
 if __name__ == "__main__":
     unittest.main()
