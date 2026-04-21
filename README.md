@@ -12,7 +12,7 @@
 - writing unit tests for both success and failure cases
 
 ## Current Features
-- support string, integer, float, boolean, and file flags
+- support string, integer, float, boolean, file, and list flags
 - allow aliases to share the same underlying flag value
 - support explicit `choices` for accepted values
 - support custom validation functions for parsed values
@@ -23,6 +23,7 @@
 - support inline `--flag=value` style input
 - return a clean dictionary of parsed values with `get_flags()`
 - get parsed values directly with `get_value()`
+- support normalized attribute access such as `flags.project` and `flags.output_file`
 - provide `get_optional()` and `resolve()` helpers for safer script flows
 - raise errors for unknown flags and missing required flags
 
@@ -33,6 +34,8 @@
 - **Boolean flags:** providing a boolean flag token (e.g. `--verbose`) sets it to `True`. To explicitly set `False`, use equals syntax (e.g. `--verbose=false`). The split form `--verbose false` is not supported.
 - **Boolean value strings:** equals syntax accepts `true/false`, `1/0`, `yes/no`, and `on/off`.
 - **File flags:** file flags validate that the provided path exists at parse-time (and raise `FileNotFoundError` if it does not).
+- **Attribute access:** registered flags can also be read through normalized dot access such as `flags.number` for `--number`.
+- **List flags:** flags registered with `list` accumulate values across space-separated tokens and repeated uses of the same flag.
 
 ## How To Run
 
@@ -71,23 +74,24 @@ import sys
 from pyflags.flag import Flags
 
 flags = Flags()
-flags.activate_interactive_mode()
 flags.add(["--project", "-p"], "Project name", str, required=True)
 flags.add(["--env"], "Environment", str, choices=["dev", "test", "prod"])
 flags.add(["--port"], "Server port", int, default=8000, validator=lambda value: 1 <= value <= 65535)
+flags.add(["--tag"], "Tag", list)
 flags.add_file(["--config", "-c"], "Config file", required=True)
 flags.add(["--verbose"], "Enable verbose logging", bool, default=False)
 
-flags.parse(sys.argv[1:])
-flags.resolve_all()
+flags.parse_and_resolve(sys.argv[1:])
 
-project_name = flags.get_value("--project")
-environment = flags.get_value("--env")
+project_name = flags.project
+environment = flags.env
 port = flags.get_optional("--port", 8000)
-config_path = flags.get_value("--config")
+config_path = flags.config
+tags = flags.tag
 
-if flags.get_value("--verbose"):
+if flags.verbose:
     print(f"[verbose] Loading config from {config_path}")
+    print(f"[verbose] Tags applied: {', '.join(tags)}")
 
 print(f"Creating project: {project_name} in {environment} on port {port}")
 ```
@@ -95,7 +99,7 @@ print(f"Creating project: {project_name} in {environment} on port {port}")
 Example command:
 
 ```bash
-python3 app.py --env=prod --port=8080 --verbose
+python3 app.py --env=prod --port=8080 --tag api tooling internal --verbose
 ```
 
 Example interactive session:
@@ -119,6 +123,7 @@ In this flow:
 - the script starts with `--env`, `--port`, and `--verbose`
 - interactive mode notices `--project` and `--config` are missing
 - the user enters `my-app` and `settings.json`
+- the script collects `api`, `tooling`, and `internal` under `--tag`
 - the script continues with the completed set of values
 
 Note: because `--config` is a file flag, the path provided must exist when it is parsed/resolved.
@@ -182,6 +187,8 @@ This project uses Python's built-in `unittest` module. The tests currently cover
 - invalid integer and float conversions
 - interactive prompting for missing required flags
 - help output rendering
+- normalized attribute access
+- list accumulation behavior
 - failure cases such as unknown flags and missing required arguments
 
 Run the full test suite with:
