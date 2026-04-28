@@ -332,7 +332,7 @@ class Flags:
         """
         Useful for debuging, showing currently set states of all passed in flags
         """
-        return_dict = {key: flag.value for key, flag in self.flag_values.items() if flag.value is not None}
+        return_dict = {key: flag.value for key, flag in self.flag_values.items() if flag.value is not None or flag.value != []}
         return return_dict
     
     def has_value(self, key: str) -> bool :
