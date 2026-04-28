@@ -1,5 +1,4 @@
 py-flags_venv/
-docs/TODO.md
+docs/*
 __pycache__
 Archive
-docs/exceptions.md
