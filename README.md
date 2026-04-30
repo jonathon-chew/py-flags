@@ -45,6 +45,43 @@ You can experiment with the library from a Python session or your own script by 
 from pyflags.flag import Flags
 ```
 
+## Install In A Virtual Environment
+
+`pip` can install directly from a GitHub repository, so you can add `py-flags` to an existing project venv without cloning the repo first.
+
+### Windows
+
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install "git+https://github.com/jonathon-chew/py-flags.git"
+```
+
+### macOS
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install "git+https://github.com/jonathon-chew/py-flags.git"
+```
+
+### Linux
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install "git+https://github.com/jonathon-chew/py-flags.git"
+```
+
+After installing, you can import it in your project with:
+
+```python
+from pyflags.flag import Flags
+```
+
 ## Examples
 
 ### Define Some Flags
