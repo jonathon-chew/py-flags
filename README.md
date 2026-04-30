@@ -21,7 +21,7 @@
 - support one-call interactive parsing with `parse_and_resolve()`
 - support optional prompting for missing values during script execution (`resolve()`)
 - support inline `--flag=value` style input
-- return a clean dictionary of parsed values with `get_flags()`
+- return a dictionary view of current flag states with `get_flags()`
 - get parsed values directly with `get_value()`
 - support normalized attribute access such as `flags.project` and `flags.output_file`
 - provide `get_optional()` and `resolve()` helpers for safer script flows
@@ -36,6 +36,7 @@
 - **File flags:** file flags validate that the provided path exists at parse-time (and raise `FileNotFoundError` if it does not).
 - **Attribute access:** registered flags can also be read through normalized dot access such as `flags.number` for `--number`.
 - **List flags:** flags registered with `list` accumulate values across space-separated tokens and repeated uses of the same flag.
+- **Current `get_flags()` behavior:** the current implementation returns a raw dictionary snapshot of registered flags.
 
 ## How To Run
 
@@ -101,7 +102,7 @@ print(flags.get_flags())
 Example output:
 
 ```python
-{"--project": "demo", "-p": "demo", "--number": 1, "-n": 1, "--verbose": False}
+{"--project": "demo", "-p": "demo", "--number": 1, "-n": 1, "--verbose": Falses}
 ```
 
 ### Real Script Example
@@ -153,6 +154,7 @@ Type: <class 'pathlib.Path'>
 Default Value is set as: None
 ./settings.json
 [verbose] Loading config from settings.json
+[verbose] Tags applied: api, tooling, internal
 Creating project: my-app in prod on port 8080
 ```
 
