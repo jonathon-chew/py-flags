@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: pyflags
+Version: 0.6.3
+Summary: `py-flags` is a small Python project for defining and parsing command-line flags.
+Home-page: https://github.com/jonathon-chew/py-flags
+Author: Jonathon Chew
+Author-email: jonchew626@hotmail.com
+License-File: LICENSE
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: summary

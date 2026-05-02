@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+src/pyflags/__init__.py
+src/pyflags/flag.py
+src/pyflags.egg-info/PKG-INFO
+src/pyflags.egg-info/SOURCES.txt
+src/pyflags.egg-info/dependency_links.txt
+src/pyflags.egg-info/top_level.txt
+tests/test_flag.py
