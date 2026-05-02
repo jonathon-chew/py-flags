@@ -8,5 +8,5 @@ setup (
     author="Jonathon Chew",
     author_email="jonchew626@hotmail.com",
     url="https://github.com/jonathon-chew/py-flags",
-    packages=find_packages(exclude=("tests*")),
+    packages=find_packages(where="src", exclude=("tests*",)),
 )
